@@ -108,3 +108,23 @@ exports.deleteProduct = async (req, res) => {
         });
     }
 };
+
+exports.uploadImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'No file uploaded'
+            });
+        }
+        res.status(200).json({
+            status: 'success',
+            url: req.file.path
+        });
+    } catch (err) {
+        res.status(400).json({
+            status: 'fail',
+            message: err.message
+        });
+    }
+};
