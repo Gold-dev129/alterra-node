@@ -33,6 +33,7 @@ exports.createOrder = async (req, res) => {
         const mailOptions = {
             from: `"ALTERRA STUDIO" <${process.env.EMAIL_USER}>`,
             to: order.shippingDetails.email,
+            cc: process.env.EMAIL_USER, // CC Admin for tracking
             subject: `Payment Received - Order #${order.orderNumber}`,
             html: `
                 <div style="font-family: 'serif', 'Times New Roman'; padding: 40px; color: #1a1a1a; max-width: 600px; margin: auto; border: 1px solid #eee;">
