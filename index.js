@@ -48,10 +48,12 @@ io.on('connection', (socket) => {
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const settingRoutes = require('./routes/settingRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/settings', settingRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {
