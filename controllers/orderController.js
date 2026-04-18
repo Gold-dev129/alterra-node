@@ -136,6 +136,22 @@ exports.getAllOrders = async (req, res) => {
     }
 };
 
+exports.getMyOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+        res.status(200).json({
+            status: 'success',
+            results: orders.length,
+            data: { orders }
+        });
+    } catch (err) {
+        res.status(404).json({
+            status: 'fail',
+            message: err.message
+        });
+    }
+};
+
 exports.getOrder = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);

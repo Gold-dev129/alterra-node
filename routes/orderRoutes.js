@@ -9,6 +9,11 @@ router.post('/', orderController.createOrder);
 
 // Protect other routes
 router.use(authMiddleware.protect);
+
+// User routes
+router.get('/mine', orderController.getMyOrders);
+
+// Admin routes
 router.use(authMiddleware.restrictTo('admin'));
 
 router.get('/', orderController.getAllOrders);
