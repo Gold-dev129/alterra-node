@@ -13,6 +13,7 @@ router.get('/:id', productController.getProduct);
 router.use(authMiddleware.protect);
 router.use(authMiddleware.restrictTo('admin'));
 
+router.post('/upload', upload.single('image'), productController.uploadImage);
 router.post('/', upload.array('images', 5), productController.createProduct);
 router.patch('/:id', upload.array('images', 5), productController.updateProduct);
 router.delete('/:id', productController.deleteProduct);
