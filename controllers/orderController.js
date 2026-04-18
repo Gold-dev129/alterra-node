@@ -174,3 +174,18 @@ exports.updateOrderStatus = async (req, res) => {
         });
     }
 };
+
+exports.deleteAllOrders = async (req, res) => {
+    try {
+        await Order.deleteMany({});
+        res.status(204).json({
+            status: 'success',
+            data: null
+        });
+    } catch (err) {
+        res.status(400).json({
+            status: 'fail',
+            message: err.message
+        });
+    }
+};

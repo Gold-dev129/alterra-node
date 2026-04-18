@@ -13,6 +13,7 @@ router.use(authMiddleware.restrictTo('admin'));
 
 router.get('/', orderController.getAllOrders);
 router.get('/:id', orderController.getOrder);
+router.delete('/all', orderController.deleteAllOrders);
 router.patch('/:id/status', orderController.updateOrderStatus);
 
 module.exports = router;
