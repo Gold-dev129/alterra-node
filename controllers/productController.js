@@ -45,6 +45,13 @@ exports.createProduct = async (req, res) => {
         if (req.body.colors && typeof req.body.colors === 'string') {
             req.body.colors = req.body.colors.split(',').map(c => c.trim()).filter(c => c !== '');
         }
+        if (req.body.sizeChart && typeof req.body.sizeChart === 'string') {
+            try {
+                req.body.sizeChart = JSON.parse(req.body.sizeChart);
+            } catch (err) {
+                req.body.sizeChart = [];
+            }
+        }
         const newProduct = await Product.create(req.body);
         res.status(201).json({
             status: 'success',
@@ -65,6 +72,13 @@ exports.updateProduct = async (req, res) => {
         }
         if (req.body.colors && typeof req.body.colors === 'string') {
             req.body.colors = req.body.colors.split(',').map(c => c.trim()).filter(c => c !== '');
+        }
+        if (req.body.sizeChart && typeof req.body.sizeChart === 'string') {
+            try {
+                req.body.sizeChart = JSON.parse(req.body.sizeChart);
+            } catch (err) {
+                console.error("Size Chart Parse Error:", err);
+            }
         }
         const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
             new: true,

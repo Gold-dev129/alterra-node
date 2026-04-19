@@ -31,6 +31,13 @@ const productSchema = new mongoose.Schema({
         default: false,
     },
     colors: [String],
+    sizeChart: [{
+        label: String,
+        chest: String,
+        waist: String,
+        length: String,
+        sleeve: String
+    }]
 }, { timestamps: true });
 
 const Product = mongoose.model('Product', productSchema);
