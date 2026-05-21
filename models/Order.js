@@ -26,6 +26,9 @@ const orderSchema = new mongoose.Schema({
             type: String,
             required: true
         },
+        waist: {
+            type: String
+        },
         customNote: String,
         image: String
     }],

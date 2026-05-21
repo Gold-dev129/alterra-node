@@ -45,6 +45,13 @@ exports.createProduct = async (req, res) => {
         if (req.body.colors && typeof req.body.colors === 'string') {
             req.body.colors = req.body.colors.split(',').map(c => c.trim()).filter(c => c !== '');
         }
+        if (req.body.waistOptions && typeof req.body.waistOptions === 'string') {
+            try {
+                req.body.waistOptions = JSON.parse(req.body.waistOptions);
+            } catch (err) {
+                req.body.waistOptions = [];
+            }
+        }
         if (req.body.sizeChart && typeof req.body.sizeChart === 'string') {
             try {
                 req.body.sizeChart = JSON.parse(req.body.sizeChart);
@@ -72,6 +79,13 @@ exports.updateProduct = async (req, res) => {
         }
         if (req.body.colors && typeof req.body.colors === 'string') {
             req.body.colors = req.body.colors.split(',').map(c => c.trim()).filter(c => c !== '');
+        }
+        if (req.body.waistOptions && typeof req.body.waistOptions === 'string') {
+            try {
+                req.body.waistOptions = JSON.parse(req.body.waistOptions);
+            } catch (err) {
+                console.error("Waist Options Parse Error:", err);
+            }
         }
         if (req.body.sizeChart && typeof req.body.sizeChart === 'string') {
             try {

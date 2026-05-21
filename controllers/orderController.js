@@ -97,6 +97,17 @@ exports.createOrder = async (req, res) => {
                 // Removed redundant transporter verification for speed
                 const info = await transporter.sendMail(mailOptions);
                 console.log('✅ CUSTOM EMAIL SENT SUCCESSFUL:', info.messageId);
+
+                // Admin Phone Notification Email
+                const adminMailOptions = {
+                    from: `"ALTERRA SYSTEM" <${process.env.EMAIL_USER}>`,
+                    to: process.env.EMAIL_USER,
+                    subject: `🚨 NEW ORDER: ${order.shippingDetails.firstName} - ₦${order.total.toFixed(2)}`,
+                    text: `New order #${order.orderNumber} received!\n\nCustomer: ${order.shippingDetails.firstName} ${order.shippingDetails.lastName}\nTotal: ₦${order.total.toFixed(2)}\nItems:\n${order.items.map(i => `- ${i.quantity}x ${i.name} (${i.size}/${i.color}${i.waist ? '/' + i.waist : ''})`).join('\n')}\n\nPhone: ${order.shippingDetails.phone}\nEmail: ${order.shippingDetails.email}\nAddress: ${order.shippingDetails.address}, ${order.shippingDetails.city}`
+                };
+                await transporter.sendMail(adminMailOptions);
+                console.log('✅ ADMIN NOTIFICATION SENT');
+
                 console.log('--- 📧 EMAIL DEBUG END ---');
             } catch (err) {
                 console.error('❌ EMAIL ERROR DETAIL:', err);
