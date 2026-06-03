@@ -6,7 +6,9 @@ exports.createOrder = async (req, res) => {
         const orderData = {
             ...req.body,
             user: req.user ? req.user._id : undefined,
-            status: req.body.paymentReference ? 'Paid' : 'Pending'
+            guestEmail: req.user ? undefined : req.body.shippingDetails?.email?.toLowerCase(),
+            status: req.body.paymentReference ? 'Paid' : 'Pending',
+            paymentNote: "Payment for delivery will be communicated when your order is ready for shipping. Delivery takes 1-2 weeks."
         };
         const order = await Order.create(orderData);
 
@@ -26,7 +28,7 @@ exports.createOrder = async (req, res) => {
         const itemsList = order.items.map(item =>
             `<div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
                 <span>${item.quantity}x ${item.name} (${item.size}/${item.color})</span>
-                <span>₦${(item.price * item.quantity).toFixed(2)}</span>
+                <span>₦${(item.price * item.quantity).toFixed(2)} + ₦${(item.serviceFee || 1000).toFixed(2)} fee</span>
             </div>`
         ).join('');
 
@@ -56,7 +58,7 @@ exports.createOrder = async (req, res) => {
 
                     <div style="background: #fafafa; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
                         <p style="font-size: 13px; color: #666; margin: 0;">
-                            <b>Shipping Notice:</b> Delivery costs vary by location. Our studio will <b>call you directly</b> at <b>${order.shippingDetails.phone}</b> to confirm your final shipping fee and schedule.
+                            <b>Shipping Notice:</b> Delivery takes 1-2 weeks. Our studio will <b>communicate your delivery payment</b> to you directly via email or call at <b>${order.shippingDetails.phone}</b> when your products are ready for shipping.
                         </p>
                     </div>
 
@@ -150,7 +152,21 @@ exports.getAllOrders = async (req, res) => {
 
 exports.getMyOrders = async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+        const email = req.user.email.toLowerCase();
+        
+        // Link any previous guest orders
+        await Order.updateMany(
+            { guestEmail: email, user: { $exists: false } },
+            { $set: { user: req.user._id, guestEmail: undefined } }
+        );
+
+        const orders = await Order.find({
+            $or: [
+                { user: req.user._id },
+                { guestEmail: email }
+            ]
+        }).sort({ createdAt: -1 });
+
         res.status(200).json({
             status: 'success',
             results: orders.length,

@@ -4,8 +4,8 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Allow guests to create orders, but restrict viewing to admin
-router.post('/', orderController.createOrder);
+// Allow guests to create orders, but track them if logged in
+router.post('/', authMiddleware.optionalProtect, orderController.createOrder);
 
 // Protect other routes
 router.use(authMiddleware.protect);

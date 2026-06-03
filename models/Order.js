@@ -26,6 +26,10 @@ const orderSchema = new mongoose.Schema({
             type: String,
             required: true
         },
+        serviceFee: {
+            type: Number,
+            default: 1000
+        },
         waist: {
             type: String
         },
@@ -45,11 +49,16 @@ const orderSchema = new mongoose.Schema({
         address: String,
         city: String,
         zipCode: String,
-        country: String
+        country: String,
+        state: String
     },
     subtotal: {
         type: Number,
         required: true
+    },
+    totalServiceFees: {
+        type: Number,
+        default: 0
     },
     shipping: {
         type: Number,
@@ -69,6 +78,16 @@ const orderSchema = new mongoose.Schema({
         unique: true
     },
     paymentReference: {
+        type: String
+    },
+    guestEmail: {
+        type: String
+    },
+    estimatedDelivery: {
+        type: String,
+        default: '1-2 weeks'
+    },
+    paymentNote: {
         type: String
     }
 }, { timestamps: true });
