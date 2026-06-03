@@ -154,16 +154,23 @@ exports.getMyOrders = async (req, res) => {
     try {
         const email = req.user.email.toLowerCase();
         
-        // Link any previous guest orders
+        // Link any previous guest orders (including legacy ones from before the update)
         await Order.updateMany(
-            { guestEmail: email, user: { $exists: false } },
+            { 
+                $or: [
+                    { guestEmail: email },
+                    { 'shippingDetails.email': { $regex: new RegExp('^' + email + '$', 'i') } }
+                ],
+                user: { $exists: false }
+            },
             { $set: { user: req.user._id, guestEmail: undefined } }
         );
 
         const orders = await Order.find({
             $or: [
                 { user: req.user._id },
-                { guestEmail: email }
+                { guestEmail: email },
+                { 'shippingDetails.email': { $regex: new RegExp('^' + email + '$', 'i') } }
             ]
         }).sort({ createdAt: -1 });
 
