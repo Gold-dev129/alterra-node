@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 exports.createOrder = async (req, res) => {
     try {
@@ -25,50 +26,293 @@ exports.createOrder = async (req, res) => {
         // PREMIUM EMAILS: Automated Confirmation
         // This will be called asynchronously after the order is saved
 
-        const itemsList = order.items.map(item =>
-            `<div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-                <span>${item.quantity}x ${item.name} (${item.size}/${item.color})</span>
-                <span>₦${(item.price * item.quantity).toFixed(2)} + ₦${(item.serviceFee || 1000).toFixed(2)} fee</span>
-            </div>`
-        ).join('');
+        const formatCurrency = (val) => '₦' + (val || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const itemsList = order.items.map(item => {
+            let itemImage = item.image;
+            if (itemImage && !itemImage.startsWith('http')) {
+                itemImage = `https://alterra-node.onrender.com${itemImage}`;
+            }
+            if (!itemImage || itemImage.includes('placeholder.png')) {
+                itemImage = 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200';
+            }
+            const waistInfo = item.waist ? `<br><b>Waist:</b> ${item.waist}` : '';
+            const customNoteInfo = item.customNote ? `<br><b>Note:</b> <i>"${item.customNote}"</i>` : '';
+            return `
+              <tr style="border-bottom: 1px solid #eeeeee;">
+                <td style="padding: 15px 0; width: 80px; vertical-align: top;">
+                  <img src="${itemImage}" alt="${item.name}" style="width: 70px; height: 95px; object-fit: cover; border-radius: 6px; border: 1px solid #eaeaea;" />
+                </td>
+                <td style="padding: 15px 10px; vertical-align: top; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                  <div style="font-size: 14px; font-weight: 600; color: #111111; margin-bottom: 4px;">${item.name}</div>
+                  <div style="font-size: 12px; color: #666666; line-height: 1.5;">
+                    <b>Size:</b> ${item.size} &nbsp;|&nbsp; <b>Color:</b> ${item.color}${waistInfo}${customNoteInfo}
+                    <br><b>Qty:</b> ${item.quantity} @ ${formatCurrency(item.price)} each
+                  </div>
+                </td>
+                <td style="padding: 15px 0; vertical-align: top; text-align: right; font-size: 14px; font-weight: 600; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                  ${formatCurrency(item.price * item.quantity)}
+                </td>
+              </tr>
+            `;
+        }).join('');
 
         const mailOptions = {
             from: `"ALTERRA STUDIO" <${process.env.EMAIL_USER}>`,
             to: order.shippingDetails.email,
             cc: process.env.EMAIL_USER, // CC Admin for tracking
-            subject: `Payment Received - Order #${order.orderNumber}`,
+            subject: `Order Confirmed - Order #${order.orderNumber}`,
             html: `
-                <div style="font-family: 'serif', 'Times New Roman'; padding: 40px; color: #1a1a1a; max-width: 600px; margin: auto; border: 1px solid #eee;">
-                    <h1 style="font-style: italic; border-bottom: 2px solid #000; padding-bottom: 20px; text-align: center;">ALTERRA STUDIO</h1>
-                    
-                    <p style="font-size: 18px; margin-top: 30px;">Hi <b>${order.shippingDetails.firstName}</b>,</p>
-                    
-                    <p>We have successfully received your payment of <b>₦${order.total.toFixed(2)}</b> on <b>${new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</b>.</p>
-                    
-                    <p>Your order <b>#${order.orderNumber}</b> has been received and is now being prepared for you.</p>
-                    
-                    <div style="background: #fdfdfd; padding: 25px; border-radius: 12px; margin: 30px 0; border: 1px solid #f0f0f0;">
-                        <h3 style="margin-top: 0; text-transform: uppercase; letter-spacing: 1px; font-size: 14px; color: #888;">Order Details</h3>
-                        ${itemsList}
-                        <div style="display: flex; justify-content: space-between; margin-top: 20px; font-weight: bold; font-size: 16px;">
-                            <span>Total Paid</span>
-                            <span>₦${order.total.toFixed(2)}</span>
-                        </div>
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Order Confirmation - ALTERRA STUDIO</title>
+              <style>
+                body {
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                  background-color: #f7f7f7;
+                  color: #1a1a1a;
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+                }
+                .wrapper {
+                  width: 100%;
+                  background-color: #f7f7f7;
+                  padding: 30px 10px;
+                }
+                .container {
+                  max-width: 580px;
+                  margin: 0 auto;
+                  background-color: #ffffff;
+                  border: 1px solid #e5e5e5;
+                  border-radius: 0px;
+                  overflow: hidden;
+                }
+                .header {
+                  background-color: #111111;
+                  padding: 35px 20px;
+                  text-align: center;
+                }
+                .header h1 {
+                  color: #ffffff;
+                  font-family: 'Times New Roman', Times, serif;
+                  font-size: 24px;
+                  font-weight: 400;
+                  letter-spacing: 5px;
+                  margin: 0;
+                  text-transform: uppercase;
+                }
+                .content {
+                  padding: 40px 30px;
+                }
+                .greeting {
+                  font-size: 20px;
+                  font-weight: 600;
+                  margin-bottom: 15px;
+                  color: #111111;
+                  font-family: 'Times New Roman', Times, serif;
+                  font-style: italic;
+                }
+                .intro-text {
+                  font-size: 14px;
+                  line-height: 1.6;
+                  color: #444444;
+                  margin-bottom: 30px;
+                }
+                .info-table {
+                  width: 100%;
+                  border-collapse: collapse;
+                  margin-bottom: 30px;
+                  background-color: #fafafa;
+                  border: 1px solid #eaeaea;
+                }
+                .info-table td {
+                  padding: 15px 20px;
+                  font-size: 13px;
+                  vertical-align: top;
+                  width: 50%;
+                }
+                .info-label {
+                  font-weight: 700;
+                  color: #888888;
+                  text-transform: uppercase;
+                  font-size: 11px;
+                  letter-spacing: 1px;
+                  display: block;
+                  margin-bottom: 5px;
+                }
+                .info-value {
+                  color: #111111;
+                  font-weight: 500;
+                }
+                .section-title {
+                  font-size: 14px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 1.5px;
+                  border-bottom: 1px solid #111111;
+                  padding-bottom: 6px;
+                  margin-top: 30px;
+                  margin-bottom: 15px;
+                  color: #111111;
+                }
+                .totals-table {
+                  width: 100%;
+                  margin-top: 15px;
+                  border-collapse: collapse;
+                }
+                .totals-table td {
+                  padding: 8px 0;
+                  font-size: 13px;
+                  color: #555555;
+                }
+                .totals-table .total-row td {
+                  font-size: 15px;
+                  font-weight: 700;
+                  color: #111111;
+                  padding-top: 15px;
+                  border-top: 1px solid #111111;
+                }
+                .address-box {
+                  background-color: #fafafa;
+                  border: 1px solid #eaeaea;
+                  padding: 20px;
+                  margin-top: 30px;
+                }
+                .address-title {
+                  font-size: 12px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 1px;
+                  margin-top: 0;
+                  margin-bottom: 10px;
+                  color: #888888;
+                }
+                .address-text {
+                  font-size: 13px;
+                  line-height: 1.6;
+                  color: #333333;
+                  margin: 0;
+                }
+                .policy-box {
+                  background-color: #fff9f9;
+                  border-left: 3px solid #ff4d4d;
+                  padding: 15px 20px;
+                  margin-top: 35px;
+                  font-size: 12px;
+                  line-height: 1.6;
+                  color: #555555;
+                }
+                .footer {
+                  background-color: #111111;
+                  padding: 40px 20px;
+                  text-align: center;
+                  font-size: 11px;
+                  color: #777777;
+                }
+                .footer p {
+                  margin: 5px 0;
+                }
+                .footer .tagline {
+                  font-style: italic;
+                  font-family: 'Times New Roman', Times, serif;
+                  font-size: 14px;
+                  color: #ffffff;
+                  margin-bottom: 20px;
+                  letter-spacing: 1px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="wrapper">
+                <div class="container">
+                  <div class="header">
+                    <h1>ALTERRA STUDIO</h1>
+                  </div>
+                  <div class="content">
+                    <div class="greeting">Thank you for your order, ${order.shippingDetails.firstName}.</div>
+                    <p class="intro-text">
+                      We are pleased to confirm that your payment has been received and your order is currently being processed. A summary of your order and delivery details is provided below.
+                    </p>
+
+                    <table class="info-table">
+                      <tr>
+                        <td style="border-right: 1px solid #eaeaea; border-bottom: 1px solid #eaeaea;">
+                          <span class="info-label">Order Number</span>
+                          <span class="info-value">#${order.orderNumber}</span>
+                        </td>
+                        <td style="border-bottom: 1px solid #eaeaea;">
+                          <span class="info-label">Order Date</span>
+                          <span class="info-value">${new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="border-right: 1px solid #eaeaea;">
+                          <span class="info-label">Payment Method</span>
+                          <span class="info-value">Paystack</span>
+                        </td>
+                        <td>
+                          <span class="info-label">Order Status</span>
+                          <span class="info-value" style="color: #2e7d32; font-weight: bold;">${order.status}</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <div class="section-title">Items Ordered</div>
+                    <table style="width: 100%; border-collapse: collapse;">
+                      ${itemsList}
+                    </table>
+
+                    <table class="totals-table">
+                      <tr>
+                        <td>Subtotal</td>
+                        <td style="text-align: right;">${formatCurrency(order.subtotal)}</td>
+                      </tr>
+                      <tr>
+                        <td>Service Fees</td>
+                        <td style="text-align: right;">${formatCurrency(order.totalServiceFees)}</td>
+                      </tr>
+                      <tr>
+                        <td>Shipping</td>
+                        <td style="text-align: right;">${order.shipping === 0 ? 'Free / Calculated Later' : formatCurrency(order.shipping)}</td>
+                      </tr>
+                      <tr class="total-row">
+                        <td>Total Amount Paid</td>
+                        <td style="text-align: right;">${formatCurrency(order.total)}</td>
+                      </tr>
+                    </table>
+
+                    <div class="address-box">
+                      <h4 class="address-title">Delivery Details</h4>
+                      <p class="address-text">
+                        <strong>Recipient:</strong> ${order.shippingDetails.firstName} ${order.shippingDetails.lastName}<br>
+                        <strong>Method:</strong> ${order.shippingDetails.deliveryMethod === 'pickup' ? 'Pickup' : 'Delivery'}<br>
+                        <strong>Address:</strong> ${order.shippingDetails.address}, ${order.shippingDetails.city}, ${order.shippingDetails.state || ''} ${order.shippingDetails.zipCode || ''}, ${order.shippingDetails.country}<br>
+                        <strong>Phone:</strong> ${order.shippingDetails.phone}
+                      </p>
                     </div>
 
-                    <div style="background: #fafafa; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
-                        <p style="font-size: 13px; color: #666; margin: 0;">
-                            <b>Shipping Notice:</b> Delivery takes 1-2 weeks. Our studio will <b>communicate your delivery payment</b> to you directly via email or call at <b>${order.shippingDetails.phone}</b> when your products are ready for shipping.
-                        </p>
+                    <div class="policy-box">
+                      <strong>Important Notice:</strong>
+                      <ul style="margin: 5px 0 0 15px; padding: 0;">
+                        <li>Due to the exclusive and bespoke nature of our items, we maintain a strict <strong>No Refund / No Exchange Policy</strong>. Please verify your choices before final submission.</li>
+                        <li>Standard custom order preparation and delivery takes <strong>1 to 2 weeks</strong>.</li>
+                        <li>Our team will contact you directly via phone or email once your items are ready for shipping to coordinate and settle delivery logistics.</li>
+                      </ul>
                     </div>
-
-                    <p style="font-style: italic; color: #444; text-align: center; margin-top: 40px;">"Crafted for the bold, designed for the timeless."</p>
-                    
-                    <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
-                        <p style="font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 2px; margin: 0;">© 2026 ALTERRA CLOTHING BRAND</p>
-                        <p style="font-size: 10px; color: #ccc; margin-top: 5px;">Lagos, Nigeria</p>
-                    </div>
+                  </div>
+                  <div class="footer">
+                    <p class="tagline">"Crafted for the bold, designed for the timeless."</p>
+                    <p style="color: #999999;">© 2026 ALTERRA STUDIO. All rights reserved.</p>
+                    <p style="color: #666666; font-size: 10px; margin-top: 10px;">Lagos, Nigeria | info@alterrastudio.com</p>
+                  </div>
                 </div>
+              </div>
+            </body>
+            </html>
             `
         };
 
@@ -88,11 +332,14 @@ exports.createOrder = async (req, res) => {
             try {
                 const transporter = nodemailer.createTransport({
                     host: 'smtp.gmail.com',
-                    port: 587,
-                    secure: false, // use STARTTLS
+                    port: 465,
+                    secure: true,
                     auth: {
                         user: process.env.EMAIL_USER,
                         pass: process.env.EMAIL_PASS
+                    },
+                    lookup: (hostname, options, callback) => {
+                        return dns.lookup(hostname, { ...options, family: 4 }, callback);
                     }
                 });
 
