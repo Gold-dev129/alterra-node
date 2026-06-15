@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const nodemailer = require('nodemailer');
 const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 
 exports.createOrder = async (req, res) => {
     try {
@@ -328,18 +329,15 @@ exports.createOrder = async (req, res) => {
                 console.error('❌ EMAIL ERROR: Missing credentials in .env file.');
                 return;
             }
-
             try {
                 const transporter = nodemailer.createTransport({
                     host: 'smtp.gmail.com',
                     port: 465,
                     secure: true,
+                    family: 4,
                     auth: {
                         user: process.env.EMAIL_USER,
                         pass: process.env.EMAIL_PASS
-                    },
-                    lookup: (hostname, options, callback) => {
-                        return dns.lookup(hostname, { ...options, family: 4 }, callback);
                     }
                 });
 
