@@ -19,17 +19,16 @@ router.get('/debug-env', (req, res) => {
 });
 
 router.get('/test-email-status', async (req, res) => {
+    const debugInfo = {
+        hasUser: !!process.env.EMAIL_USER,
+        hasPass: !!process.env.EMAIL_PASS,
+        userLength: process.env.EMAIL_USER ? process.env.EMAIL_USER.length : 0,
+        passLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0,
+        nodeEnv: process.env.NODE_ENV
+    };
     try {
         const nodemailer = require('nodemailer');
         const dns = require('dns');
-
-        const debugInfo = {
-            hasUser: !!process.env.EMAIL_USER,
-            hasPass: !!process.env.EMAIL_PASS,
-            userLength: process.env.EMAIL_USER ? process.env.EMAIL_USER.length : 0,
-            passLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0,
-            nodeEnv: process.env.NODE_ENV
-        };
 
         if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
             return res.status(400).json({
