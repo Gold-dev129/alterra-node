@@ -7,6 +7,17 @@ const router = express.Router();
 // Publicly accessible settings
 router.get('/', settingController.getSettings);
 
+router.get('/debug-env', (req, res) => {
+    res.status(200).json({
+        hasUser: !!process.env.EMAIL_USER,
+        hasPass: !!process.env.EMAIL_PASS,
+        userLength: process.env.EMAIL_USER ? process.env.EMAIL_USER.length : 0,
+        passLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0,
+        nodeEnv: process.env.NODE_ENV,
+        emailUser: process.env.EMAIL_USER ? `${process.env.EMAIL_USER.substring(0, 3)}...` : null
+    });
+});
+
 router.get('/test-email-status', async (req, res) => {
     try {
         const nodemailer = require('nodemailer');
@@ -36,6 +47,9 @@ router.get('/test-email-status', async (req, res) => {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
+            connectionTimeout: 5000,
+            greetingTimeout: 5000,
+            socketTimeout: 5000,
             lookup: (hostname, options, callback) => {
                 dns.lookup(hostname, { family: 4 }, callback);
             }
