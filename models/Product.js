@@ -30,6 +30,10 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    isSoldOut: {
+        type: Boolean,
+        default: false,
+    },
     colors: [String],
     waistOptions: [String],
     sizeChart: [mongoose.Schema.Types.Mixed]

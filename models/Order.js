@@ -89,6 +89,10 @@ const orderSchema = new mongoose.Schema({
     },
     paymentNote: {
         type: String
+    },
+    isFulfilled: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

@@ -279,7 +279,7 @@ exports.createOrder = async (req, res) => {
                       </tr>
                       <tr>
                         <td>Shipping</td>
-                        <td style="text-align: right;">${order.shipping === 0 ? 'Free / Calculated Later' : formatCurrency(order.shipping)}</td>
+                        <td style="text-align: right;">${order.shipping === 0 ? 'Free / Self Pickup' : formatCurrency(order.shipping)}</td>
                       </tr>
                       <tr class="total-row">
                         <td>Total Amount Paid</td>
@@ -288,11 +288,18 @@ exports.createOrder = async (req, res) => {
                     </table>
 
                     <div class="address-box">
-                      <h4 class="address-title">Delivery Details</h4>
+                      <h4 class="address-title">Delivery Summary</h4>
                       <p class="address-text">
+                        <strong>Method:</strong> ${order.shippingDetails.deliveryMethod === 'pickup' ? 'Self Pickup' : 'Home/Hostel Delivery'}<br>
+                        ${order.shippingDetails.deliveryMethod === 'delivery' ? `
+                          <strong>State/Region:</strong> ${order.shippingDetails.state || 'N/A'}<br>
+                          <strong>Address/Location:</strong> ${order.shippingDetails.address || 'N/A'}, ${order.shippingDetails.city || ''}<br>
+                          <strong>Delivery Status:</strong> Paid (₦${order.shipping.toLocaleString('en-NG')})<br>
+                        ` : `
+                          <strong>Pickup Location:</strong> Self Pickup at Alterra Studio Store<br>
+                          <strong>Delivery Status:</strong> N/A (Self Pickup)<br>
+                        `}
                         <strong>Recipient:</strong> ${order.shippingDetails.firstName} ${order.shippingDetails.lastName}<br>
-                        <strong>Method:</strong> ${order.shippingDetails.deliveryMethod === 'pickup' ? 'Pickup' : 'Delivery'}<br>
-                        <strong>Address:</strong> ${order.shippingDetails.address}, ${order.shippingDetails.city}, ${order.shippingDetails.state || ''} ${order.shippingDetails.zipCode || ''}, ${order.shippingDetails.country}<br>
                         <strong>Phone:</strong> ${order.shippingDetails.phone}
                       </p>
                     </div>
@@ -454,8 +461,12 @@ exports.getOrder = async (req, res) => {
 
 exports.updateOrderStatus = async (req, res) => {
     try {
+        const updateData = {};
+        if (req.body.status !== undefined) updateData.status = req.body.status;
+        if (req.body.isFulfilled !== undefined) updateData.isFulfilled = req.body.isFulfilled;
+
         const order = await Order.findByIdAndUpdate(req.params.id,
-            { status: req.body.status },
+            updateData,
             { new: true, runValidators: true }
         );
         res.status(200).json({
