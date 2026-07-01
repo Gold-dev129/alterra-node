@@ -1,7 +1,8 @@
 const Order = require('../models/Order');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
+
 
 exports.createOrder = async (req, res) => {
     try {
@@ -59,9 +60,9 @@ exports.createOrder = async (req, res) => {
         }).join('');
 
         const mailOptions = {
-            from: `"ALTERRA STUDIO" <${process.env.EMAIL_USER}>`,
+            from: `"ALTERRA STUDIO" <${process.env.EMAIL_SENDER || process.env.EMAIL_USER || 'onboarding@resend.dev'}>`,
             to: order.shippingDetails.email,
-            cc: process.env.EMAIL_USER, // CC Admin for tracking
+            cc: process.env.EMAIL_RECEIVER || process.env.EMAIL_USER || 'alterraszn@gmail.com', // CC Admin for tracking
             subject: `Order Confirmed - Order #${order.orderNumber}`,
             html: `
             <!DOCTYPE html>
@@ -321,48 +322,44 @@ exports.createOrder = async (req, res) => {
         const sendConfirmationEmail = async () => {
             console.log('--- 📧 EMAIL DEBUG START ---');
             console.log('📬 Recipient:', order.shippingDetails.email);
-            console.log('👤 Sender User:', process.env.EMAIL_USER ? 'DEFINED' : 'MISSING');
-            console.log('🔑 Sender Pass:', process.env.EMAIL_PASS ? 'DEFINED' : 'MISSING');
             console.log('📦 Items Count:', order.items?.length || 0);
 
-            if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-                console.error('❌ EMAIL ERROR: Missing credentials in .env file.');
+            if (!process.env.RESEND_API_KEY) {
+                console.error('❌ EMAIL ERROR: Missing RESEND_API_KEY in environment variables.');
                 return;
             }
+
             try {
-                const transporter = nodemailer.createTransport({
-                    host: 'smtp.gmail.com',
-                    port: 465,
-                    secure: true,
-                    auth: {
-                        user: process.env.EMAIL_USER,
-                        pass: process.env.EMAIL_PASS
-                    },
-                    lookup: (hostname, options, callback) => {
-                        dns.lookup(hostname, { family: 4 }, callback);
-                    }
+                const resend = new Resend(process.env.RESEND_API_KEY);
+
+                const sender = process.env.EMAIL_SENDER || 'onboarding@resend.dev';
+                const receiver = process.env.EMAIL_RECEIVER || 'alterraszn@gmail.com';
+
+                // Send confirmation to the customer
+                const customerMailResult = await resend.emails.send({
+                    from: `"ALTERRA STUDIO" <${sender}>`,
+                    to: order.shippingDetails.email,
+                    cc: receiver, // CC Admin for tracking
+                    subject: `Order Confirmed - Order #${order.orderNumber}`,
+                    html: mailOptions.html
                 });
 
-                // Removed redundant transporter verification for speed
-                const info = await transporter.sendMail(mailOptions);
-                console.log('✅ CUSTOM EMAIL SENT SUCCESSFUL:', info.messageId);
+                console.log('✅ CUSTOM EMAIL SENT SUCCESSFUL via Resend:', customerMailResult.data?.id || customerMailResult.error);
 
                 // Admin Phone Notification Email
-                const adminMailOptions = {
-                    from: `"ALTERRA SYSTEM" <${process.env.EMAIL_USER}>`,
-                    to: process.env.EMAIL_USER,
-                    subject: `🚨 NEW ORDER: ${order.shippingDetails.firstName} - ₦${order.total.toFixed(2)}`,
-                    text: `New order #${order.orderNumber} received!\n\nCustomer: ${order.shippingDetails.firstName} ${order.shippingDetails.lastName}\nTotal: ₦${order.total.toFixed(2)}\nItems:\n${order.items.map(i => `- ${i.quantity}x ${i.name} (${i.size}/${i.color}${i.waist ? '/' + i.waist : ''})`).join('\n')}\n\nPhone: ${order.shippingDetails.phone}\nEmail: ${order.shippingDetails.email}\nAddress: ${order.shippingDetails.address}, ${order.shippingDetails.city}`
-                };
-                await transporter.sendMail(adminMailOptions);
-                console.log('✅ ADMIN NOTIFICATION SENT');
+                const adminMailText = `New order #${order.orderNumber} received!\n\nCustomer: ${order.shippingDetails.firstName} ${order.shippingDetails.lastName}\nTotal: ₦${order.total.toFixed(2)}\nItems:\n${order.items.map(i => `- ${i.quantity}x ${i.name} (${i.size}/${i.color}${i.waist ? '/' + i.waist : ''})`).join('\n')}\n\nPhone: ${order.shippingDetails.phone}\nEmail: ${order.shippingDetails.email}\nAddress: ${order.shippingDetails.address}, ${order.shippingDetails.city}`;
 
+                const adminMailResult = await resend.emails.send({
+                    from: `"ALTERRA SYSTEM" <${sender}>`,
+                    to: receiver,
+                    subject: `🚨 NEW ORDER: ${order.shippingDetails.firstName} - ₦${order.total.toFixed(2)}`,
+                    text: adminMailText
+                });
+
+                console.log('✅ ADMIN NOTIFICATION SENT via Resend:', adminMailResult.data?.id || adminMailResult.error);
                 console.log('--- 📧 EMAIL DEBUG END ---');
             } catch (err) {
-                console.error('❌ EMAIL ERROR DETAIL:', err);
-                if (err.message.includes('Invalid login') || err.message.includes('auth')) {
-                    console.error('👉 TIP: Check your Gmail App Password. Ensure 2-Step Verification is ON and you generated an "App Password" (16 characters, no spaces).');
-                }
+                console.error('❌ RESEND EMAIL ERROR DETAIL:', err);
             }
         };
 
