@@ -39,9 +39,11 @@ router.get('/test-email-status', async (req, res) => {
 
         const resend = new Resend(process.env.RESEND_API_KEY);
 
+        const recipient = req.query.to || debugInfo.receiver;
+
         const info = await resend.emails.send({
             from: `"ALTERRA TEST" <${debugInfo.sender}>`,
-            to: debugInfo.receiver,
+            to: recipient,
             subject: "Render Diagnostics Test (Resend)",
             text: "This is a diagnostic email from the live Render server using Resend API."
         });
