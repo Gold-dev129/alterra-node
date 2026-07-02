@@ -6,6 +6,8 @@ const router = express.Router();
 
 // Allow guests to create orders, but track them if logged in
 router.post('/', authMiddleware.optionalProtect, orderController.createOrder);
+router.patch('/:id/pay', orderController.payOrder);
+router.post('/paystack-webhook', orderController.paystackWebhook);
 
 // Protect other routes
 router.use(authMiddleware.protect);
