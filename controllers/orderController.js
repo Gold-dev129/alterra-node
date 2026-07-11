@@ -377,7 +377,7 @@ exports.createOrder = async (req, res) => {
 
 exports.getAllOrders = async (req, res) => {
     try {
-        const orders = await Order.find().sort({ createdAt: -1 });
+        const orders = await Order.find({ status: { $ne: 'Pending' } }).sort({ createdAt: -1 });
         res.status(200).json({
             status: 'success',
             results: orders.length,
