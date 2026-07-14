@@ -377,6 +377,28 @@ exports.createOrder = async (req, res) => {
 
 exports.getAllOrders = async (req, res) => {
     try {
+        // Self-healing: Check Paystack for recently created Pending orders (last 24 hours)
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const pendingOrders = await Order.find({ 
+            status: 'Pending',
+            createdAt: { $gte: oneDayAgo }
+        });
+        
+        for (let order of pendingOrders) {
+            try {
+                const txData = await verifyPaystackPayment(order.orderNumber);
+                if (txData && txData.status === 'success') {
+                    order.status = 'Paid';
+                    order.paymentReference = txData.reference || order.orderNumber;
+                    await order.save();
+                    console.log(`Self-healing (Admin): Order #${order.orderNumber} successfully updated to Paid`);
+                    sendConfirmationEmailForOrder(order);
+                }
+            } catch (err) {
+                console.error(`Self-healing error for order #${order.orderNumber}:`, err);
+            }
+        }
+
         const orders = await Order.find({ status: { $ne: 'Pending' } }).sort({ createdAt: -1 });
         res.status(200).json({
             status: 'success',
@@ -406,6 +428,33 @@ exports.getMyOrders = async (req, res) => {
             },
             { $set: { user: req.user._id, guestEmail: undefined } }
         );
+
+        // Self-healing: Check Paystack for recently created Pending orders for this user (last 24 hours)
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const pendingOrders = await Order.find({
+            $or: [
+                { user: req.user._id },
+                { guestEmail: email },
+                { 'shippingDetails.email': { $regex: new RegExp('^' + email + '$', 'i') } }
+            ],
+            status: 'Pending',
+            createdAt: { $gte: oneDayAgo }
+        });
+
+        for (let order of pendingOrders) {
+            try {
+                const txData = await verifyPaystackPayment(order.orderNumber);
+                if (txData && txData.status === 'success') {
+                    order.status = 'Paid';
+                    order.paymentReference = txData.reference || order.orderNumber;
+                    await order.save();
+                    console.log(`Self-healing (User): Order #${order.orderNumber} successfully updated to Paid`);
+                    sendConfirmationEmailForOrder(order);
+                }
+            } catch (err) {
+                console.error(`Self-healing error for order #${order.orderNumber}:`, err);
+            }
+        }
 
         const orders = await Order.find({
             $or: [
