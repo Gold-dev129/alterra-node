@@ -14,7 +14,9 @@ router.get('/debug-env', (req, res) => {
         userLength: process.env.EMAIL_USER ? process.env.EMAIL_USER.length : 0,
         passLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0,
         nodeEnv: process.env.NODE_ENV,
-        emailUser: process.env.EMAIL_USER ? `${process.env.EMAIL_USER.substring(0, 3)}...` : null
+        emailUser: process.env.EMAIL_USER ? `${process.env.EMAIL_USER.substring(0, 3)}...` : null,
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        jwtSecretLength: process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0
     });
 });
 
