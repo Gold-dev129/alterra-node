@@ -40,7 +40,15 @@ exports.getProduct = async (req, res) => {
 exports.createProduct = async (req, res) => {
     try {
         if (req.files) {
-            req.body.images = req.files.map(file => file.path);
+            if (req.files.images) {
+                req.body.images = req.files.images.map(file => file.path);
+            }
+            if (req.files.modelImages) {
+                req.body.modelImages = req.files.modelImages.map(file => file.path);
+            }
+            if (req.files.sizeGuideImage && req.files.sizeGuideImage.length > 0) {
+                req.body.sizeGuideImage = req.files.sizeGuideImage[0].path;
+            }
         }
         if (req.body.colors && typeof req.body.colors === 'string') {
             req.body.colors = req.body.colors.split(',').map(c => c.trim()).filter(c => c !== '');
@@ -74,8 +82,16 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
     try {
-        if (req.files && req.files.length > 0) {
-            req.body.images = req.files.map(file => file.path);
+        if (req.files) {
+            if (req.files.images && req.files.images.length > 0) {
+                req.body.images = req.files.images.map(file => file.path);
+            }
+            if (req.files.modelImages && req.files.modelImages.length > 0) {
+                req.body.modelImages = req.files.modelImages.map(file => file.path);
+            }
+            if (req.files.sizeGuideImage && req.files.sizeGuideImage.length > 0) {
+                req.body.sizeGuideImage = req.files.sizeGuideImage[0].path;
+            }
         }
         if (req.body.colors && typeof req.body.colors === 'string') {
             req.body.colors = req.body.colors.split(',').map(c => c.trim()).filter(c => c !== '');

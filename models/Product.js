@@ -18,6 +18,8 @@ const productSchema = new mongoose.Schema({
         type: String,
     },
     images: [String],
+    modelImages: [String],
+    sizeGuideImage: String,
     stock: {
         type: Number,
         default: 0,
